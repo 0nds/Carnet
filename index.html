@@ -347,18 +347,18 @@ const dur=t=>{if(!t)return '—';const tot=Math.round(t*60),h=Math.floor(tot/360
 
 /* Programme full body (2 séances par semaine) */
 const PROGRAM=[
-  {ex:'Curl biceps',sets:3},
+  {ex:'Curl biceps',sets:2},
   {ex:'Tractions',sets:3,bw:true},
-  {ex:'Développé incliné Smith',sets:3},
-  {ex:'Rowing',sets:3},
+  {ex:'Dips',sets:3,bw:true},
+  {ex:'Développé incliné Smith',sets:2},
+  {ex:'Rowing',sets:2},
   {ex:'Presse à cuisses',sets:3},
   {ex:'Leg curl',sets:2},
   {ex:'Leg extension',sets:2},
-  {ex:'Dips',sets:3,bw:true},
-  {ex:'Élévations latérales',sets:3},
-  {ex:'Extension triceps',sets:3},
+  {ex:'Élévations latérales',sets:2},
   {ex:'Abdos',sets:3,type:'time'}
 ];
+const PROG_V=PROGRAM.map(p=>p.ex+':'+p.sets).join('|');
 const WEEK_GOAL=2, RUN_GOAL=2;
 const RUN_TYPES=['Footing','Fractionné','Sortie longue'];
 const isRun=s=>s&&s.kind==='run';
@@ -371,12 +371,19 @@ const blankRun=()=>({km:'',min:'',sec:'',type:'Footing'});
 function untouched(d){const r=d.run||{};return !d.id&&(d.items||[]).every(it=>it.sets.every(st=>!String(st.reps??'').trim()&&!String(st.min??'').trim()))&&!String(r.km??'').trim()&&!String(r.min??'').trim()&&!String(r.sec??'').trim()}
 if(draft){draft.items=draft.items||[];draft.run=draft.run||blankRun();draft.kind=draft.kind||'gym'}
 if(!draft||untouched(draft)||(!draft.id&&draft.openedOn!==today()))draft=newDraft();
+/* programme modifié : on remet la séance en cours dans le nouvel ordre, en gardant ce qui est déjà noté */
+if(!draft.id&&draft.kind!=='run'&&draft.prog!==PROG_V){
+  const fresh=newDraft(),old=draft.items||[];
+  fresh.items=fresh.items.map(it=>{const o=old.find(x=>norm(x.ex)===norm(it.ex));return o&&o.sets.some(st=>String(st.reps??'').trim()||String(st.min??'').trim())?o:it});
+  old.forEach(o=>{if(!PROGRAM.some(p=>norm(p.ex)===norm(o.ex))&&o.sets.some(st=>String(st.reps??'').trim()||String(st.min??'').trim()))fresh.items.push(o)});
+  fresh.date=draft.date;fresh.openedOn=draft.openedOn||today();draft=fresh;
+}
 let confirmDel=null;
 
 function lastItem(ex){const k=norm(ex);const ss=[...sessions].sort((a,b)=>b.date.localeCompare(a.date));for(const s of ss){const it=s.items.find(i=>norm(i.ex)===k);if(it)return it}return null}
 function newDraft(){
-  return {id:null,date:today(),openedOn:today(),kind:ui.kind==='run'?'run':'gym',run:blankRun(),items:PROGRAM.map(p=>{
-    const last=lastItem(p.ex),t=p.type==='time',n=t?p.sets:(last?last.sets.length:p.sets),sets=[];
+  return {id:null,prog:PROG_V,date:today(),openedOn:today(),kind:ui.kind==='run'?'run':'gym',run:blankRun(),items:PROGRAM.map(p=>{
+    const last=lastItem(p.ex),t=p.type==='time',n=p.sets,sets=[];
     for(let j=0;j<n;j++){const ls=last&&(last.sets[j]||last.sets[last.sets.length-1]);
       sets.push(t?{min:'',ph:ls?fmt(num(ls.min)):'3'}:{kg:ls?fmt(num(ls.kg)):'',reps:'',ph:ls?fmt(num(ls.reps)):''})}
     return {ex:p.ex,type:t?'time':'reps',note:p.note||'',bw:last&&last.bw!==undefined?!!last.bw:!!p.bw,sets};
