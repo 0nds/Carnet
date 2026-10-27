@@ -82,6 +82,30 @@ button{cursor:pointer;border:0;background:none}
 .dnote b{color:var(--ink);font-weight:600}
 .dnote.warn{color:var(--ink)}
 .linkbtn{color:var(--reps);font-weight:600;text-decoration:underline;padding:0}
+.datebar{display:flex;gap:10px;align-items:center}
+.datebtn{flex:1;min-width:0;display:flex;align-items:center;gap:10px;min-height:46px;padding:0 12px;background:var(--surface);border:1px solid var(--line);border-radius:10px;font-weight:600;font-size:16px;text-align:left}
+.datebtn span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-transform:capitalize}
+.datebtn svg{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;color:var(--muted)}
+.datebtn.open .chev{transform:rotate(180deg)}
+.cal{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 10px 12px;display:flex;flex-direction:column;gap:8px}
+.cal-h{display:flex;align-items:center;justify-content:space-between}
+.cal-h .x svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.cal-h .x:disabled{opacity:.3}
+.cal-m{font-family:var(--display);font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:.02em}
+.cal-g{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cw{text-align:center;font-size:11px;font-weight:600;color:var(--muted);padding-bottom:2px}
+.cd{aspect-ratio:1;max-width:100%;min-height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:15px;font-variant-numeric:tabular-nums;position:relative}
+.cd.off{color:var(--line)}
+.cd.gym{background:var(--ok);color:var(--surface)}
+.cd.run{background:var(--reps);color:var(--surface)}
+.cd.both{background:linear-gradient(135deg,var(--ok) 50%,var(--reps) 50%);color:var(--surface)}
+.cd.today{box-shadow:inset 0 0 0 2px var(--ink)}
+.cd.sel{outline:3px solid var(--kg);outline-offset:1px}
+.cd.bw::after{content:"";position:absolute;bottom:4px;left:50%;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:var(--kg)}
+.cal-l{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);padding:0 4px}
+.cal-l span{display:inline-flex;align-items:center;gap:6px}
+.cal-l i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.cal-l .lg{background:var(--ok)}.cal-l .lr{background:var(--reps)}.cal-l .lb{background:var(--kg);border-radius:50%;width:7px;height:7px}
 /* liste des exos + icônes */
 .ico{display:inline-flex;align-items:center;justify-content:center;width:46px;height:46px;flex:none;border-radius:12px;background:var(--soft);color:var(--ink)}
 .ico svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
@@ -424,6 +448,50 @@ function spark(vals,color){
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true"><path d="${p}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linejoin="round"/><circle cx="${lx}" cy="${ly}" r="2.6" fill="${color}"/></svg>`;
 }
 
+/* ---------- calendrier intégré (jours colorés) ---------- */
+let cal={open:null,month:null};
+const MONTHS_FMT={month:'long',year:'numeric'};
+function dateBtn(which,ds){
+  const f=dObj(ds).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
+  const open=cal.open===which;
+  return `<button class="datebtn${open?' open':''}" data-cal="${which}" aria-expanded="${open}">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>
+    <span>${ds===today()?'Aujourd\'hui · ':''}${esc(f)}</span>
+    <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>`;
+}
+function calendarHtml(which,selected){
+  if(cal.open!==which)return '';
+  const ym=cal.month||selected.slice(0,7);
+  const first=dObj(ym+'-01'),start=(first.getDay()+6)%7;
+  const dim=new Date(first.getFullYear(),first.getMonth()+1,0).getDate();
+  const t=today(),canNext=ym<t.slice(0,7);
+  const g=new Set(),r=new Set(),b=new Set();
+  sessions.forEach(x=>{if(x.date.slice(0,7)===ym)(isRun(x)?r:g).add(x.date)});
+  body.forEach(x=>{if(x.date.slice(0,7)===ym)b.add(x.date)});
+  let cells='';for(let i=0;i<start;i++)cells+='<span></span>';
+  let nG=0,nR=0;
+  for(let d=1;d<=dim;d++){
+    const ds=ym+'-'+String(d).padStart(2,'0'),hg=g.has(ds),hr=r.has(ds);
+    if(hg)nG++;if(hr)nR++;
+    const cls=[hg&&hr?'both':hg?'gym':hr?'run':'',ds===t?'today':'',ds===selected?'sel':'',which==='body'&&b.has(ds)?'bw':''].filter(Boolean).join(' ');
+    const lbl=dObj(ds).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})+(hg?', muscu':'')+(hr?', course':'');
+    cells+=ds>t?`<span class="cd off">${d}</span>`:`<button class="cd ${cls}" data-cd="${ds}" aria-label="${esc(lbl)}"${ds===selected?' aria-current="date"':''}>${d}</button>`;
+  }
+  return `<section class="cal" aria-label="Calendrier">
+    <div class="cal-h"><button class="x" data-cm="-1" aria-label="Mois précédent"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <span class="cal-m">${esc(first.toLocaleDateString('fr-FR',MONTHS_FMT))}</span>
+      <button class="x" data-cm="1" aria-label="Mois suivant"${canNext?'':' disabled'}><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button></div>
+    <div class="cal-g">${['L','M','M','J','V','S','D'].map(l=>`<span class="cw">${l}</span>`).join('')}${cells}</div>
+    <div class="cal-l"><span><i class="lg"></i>Muscu · ${nG}</span><span><i class="lr"></i>Course · ${nR}</span>${which==='body'?'<span><i class="lb"></i>Relevé</span>':''}</div>
+  </section>`;
+}
+function calClick(b){
+  if(b.dataset.cal){const w=b.dataset.cal;if(cal.open===w)cal.open=null;else{cal.open=w;cal.month=(w==='body'?ui.bdate:draft.date).slice(0,7)}w==='body'?renderBody():renderLog();return true}
+  if(b.dataset.cm){const d=dObj((cal.month)+'-15');d.setMonth(d.getMonth()+ +b.dataset.cm);const ym=ymd(d).slice(0,7);if(ym<=today().slice(0,7))cal.month=ym;cal.open==='body'?renderBody():renderLog();return true}
+  if(b.dataset.cd){const ds=b.dataset.cd;if(cal.open==='body'){ui.bdate=ds;cal.open=null;renderBody()}else{draft.date=ds;saveDraft();cal.open=null;renderLog()}return true}
+  return false;
+}
+
 /* ---------- vues ---------- */
 const view=document.getElementById('view');
 function render(){
@@ -546,7 +614,8 @@ function renderLog(){
   const known=exList(sessions.length?sessions:demoSessions());
   let h=`<div style="display:flex;flex-direction:column;gap:14px">
   ${draft.id?'':weekCard()}
-  <div class="datebar"><input type="date" id="d-date" value="${esc(draft.date)}" max="${today()}" aria-label="Date de la séance">${draft.id?'<button class="btn small" id="d-cancel">Annuler</button>':'<button class="btn small" id="d-reset">Effacer</button>'}</div>
+  <div class="datebar">${dateBtn('log',draft.date)}${draft.id?'<button class="btn small" id="d-cancel">Annuler</button>':'<button class="btn small" id="d-reset">Effacer</button>'}</div>
+  ${calendarHtml('log',draft.date)}
   ${dateNote()}
   ${draft.id?'':`<div class="seg kind" role="group" aria-label="Type de séance"><button data-kind="gym" aria-pressed="${draft.kind!=='run'}">${icon('bell','ico xs')}Muscu</button><button data-kind="run" aria-pressed="${draft.kind==='run'}">${icon('run','ico xs')}Course à pied</button></div>`}
   ${draft.kind==='run'?runForm()+`<button class="btn primary" id="d-save">${draft.id?'Enregistrer les modifications':'Enregistrer la course'}</button></div>`:''}`;
@@ -795,7 +864,8 @@ function renderBody(){
   let h=`<div style="display:flex;flex-direction:column;gap:14px">
   <section class="card entry">
     <div class="card-h"><span class="t">${isToday?'Aujourd\'hui':esc(dObj(ds).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'}))}</span><span class="u">${e.date?'déjà noté · modifiable':'pesée et pas du jour'}</span></div>
-    <input type="date" id="b-date" value="${esc(ds)}" max="${today()}" aria-label="Date">
+    ${dateBtn('body',ds)}
+    ${calendarHtml('body',ds)}
     <div class="run-grid even">
       <label class="fld"><span class="h">Poids</span><span class="unitwrap"><input class="kgin num" id="b-kg" inputmode="decimal" placeholder="${wNow?esc(fmt(wNow)):'72,5'}" value="${esc(e.kg!=null&&e.kg!==''?fmt(num(e.kg)):'')}"><span>kg</span></span></label>
       <label class="fld"><span class="h">Pas</span><span class="unitwrap"><input class="repin num" id="b-steps" inputmode="numeric" pattern="[0-9]*" placeholder="8000" value="${esc(e.steps??'')}"><span>pas</span></span></label>
@@ -858,7 +928,7 @@ function bodyClick(b){
     saveProfile({sex:profile.sex,age,cm});editProf=false;toast('Profil enregistré');renderBody();return true;
   }
   if(a==='save'){
-    const ds=document.getElementById('b-date').value||today();
+    const ds=ui.bdate||today();
     const kgS=document.getElementById('b-kg').value.trim(),stS=document.getElementById('b-steps').value.trim();
     if(!kgS&&!stS){toast('Entre ton poids ou ton nombre de pas');return true}
     const kg=num(kgS),st=Math.round(num(stS));
@@ -878,7 +948,6 @@ let saveT;
 view.addEventListener('change',e=>{
   const el=e.target;
   if(el.id==='imp-file'&&el.files&&el.files[0]){const r=new FileReader();r.onload=()=>{const t=document.getElementById('imp-txt');if(t)t.value=String(r.result||'')};r.readAsText(el.files[0]);return}
-  if(el.id==='b-date'){ui.bdate=el.value||today();renderBody();return}
   if(el.id!=='d-date')return;
   draft.date=el.value||today();saveDraft();renderLog();
 });
@@ -893,7 +962,8 @@ view.addEventListener('input',e=>{
   saveDraft();
 });
 view.addEventListener('click',async e=>{
-  const b=e.target.closest('button');if(!b)return;
+  const b=e.target.closest('button');if(!b||b.disabled)return;
+  if(calClick(b))return;
   if(ui.tab==='body'&&bodyClick(b))return;
   if(b.dataset.ex){ui.ex=b.dataset.ex;saveUi();renderProg();return}
   if(b.dataset.b){
@@ -931,7 +1001,7 @@ view.addEventListener('click',async e=>{
   if(b.dataset.a==='see-prog'){if(it.ex.trim())ui.ex=it.ex.trim();go('prog');return}
 });
 document.querySelectorAll('nav.tabs button').forEach(b=>b.addEventListener('click',()=>go(b.dataset.tab)));
-function go(t){ui.tab=t;ui.open=null;confirmB=null;editProf=false;if(t==='body')ui.bdate=today();saveUi();confirmDel=null;render();window.scrollTo(0,0)}
+function go(t){cal.open=null;ui.tab=t;ui.open=null;confirmB=null;editProf=false;if(t==='body')ui.bdate=today();saveUi();confirmDel=null;render();window.scrollTo(0,0)}
 
 let toastT;function toast(m){const t=document.getElementById('toast');t.textContent=m;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,2200)}
 
