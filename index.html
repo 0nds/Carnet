@@ -347,14 +347,16 @@ const dur=t=>{if(!t)return '—';const tot=Math.round(t*60),h=Math.floor(tot/360
 
 /* Programme full body (2 séances par semaine) */
 const PROGRAM=[
+  {ex:'Curl biceps',sets:3},
   {ex:'Tractions',sets:3,bw:true},
   {ex:'Développé incliné Smith',sets:3},
   {ex:'Rowing',sets:3},
-  {ex:'Split squat',sets:3},
+  {ex:'Presse à cuisses',sets:3},
+  {ex:'Leg curl',sets:2},
+  {ex:'Leg extension',sets:2},
   {ex:'Dips',sets:3,bw:true},
   {ex:'Élévations latérales',sets:3},
-  {ex:'Curl biceps',sets:3,note:'Superset avec extension triceps'},
-  {ex:'Extension triceps',sets:3,note:'Superset avec curl biceps'},
+  {ex:'Extension triceps',sets:3},
   {ex:'Abdos',sets:3,type:'time'}
 ];
 const WEEK_GOAL=2, RUN_GOAL=2;
@@ -396,7 +398,7 @@ function saveDraft(){lsSet(LS_DRAFT,draft)}
 /* ---------- données d'exemple (affichées seulement tant qu'aucune séance n'existe) ---------- */
 function demoSessions(){
   const out=[];const base=dObj(today());
-  const tbl={'Tractions':[0,0,6,4],'Développé incliné Smith':[40,12.5,8,0],'Rowing':[50,15,10,0],'Split squat':[20,10,8,0],'Dips':[0,0,8,5],'Élévations latérales':[8,2,12,0],'Curl biceps':[12,4,10,0],'Extension triceps':[15,5,12,0]};
+  const tbl={'Tractions':[0,0,6,4],'Développé incliné Smith':[40,12.5,8,0],'Rowing':[50,15,10,0],'Split squat':[20,10,8,0],'Presse à cuisses':[80,30,10,0],'Leg curl':[30,10,12,0],'Leg extension':[35,10,12,0],'Dips':[0,0,8,5],'Élévations latérales':[8,2,12,0],'Curl biceps':[12,4,10,0],'Extension triceps':[15,5,12,0]};
   for(let i=0;i<20;i++){
     const d=new Date(base);d.setDate(d.getDate()-Math.round((19-i)*3.5)-1);
     const k=i/19,wob=[0,1,-1,0,1,0,-1,1][i%8];
@@ -590,12 +592,18 @@ const ICONS={
   tri:'<circle cx="12" cy="9.2" r="2"/><path d="M12 11.2v6M12 17.2l-2.5 4.5M12 17.2l2.5 4.5"/><path d="M10.5 12.5L9 4l3 2.7M13.5 12.5L15 4l-3 2.7"/><path d="M10 6.6h4M10 5.4v2.4M14 5.4v2.4"/>',
   abs:'<path d="M3 20h18"/><path d="M12 19l4-5 3 5"/><path d="M12 19l-5-4"/><circle cx="5.5" cy="12.5" r="2"/><path d="M7 13.5l3-1"/>',
   run:'<circle cx="15" cy="4" r="2"/><path d="M14 6.5l-2.5 6.5M13.5 8.5l3.5 2.5M13.5 8.5l-4.5 1M11.5 13l3.5 3-1.5 5M11.5 13l-3 3.5H4"/>',
+  legpress:'<path d="M3 20h6M3 20l4-10"/><circle cx="7.8" cy="7.4" r="1.7"/><path d="M7 9.6L5.4 16.5"/><path d="M5.4 16.5l5-5.5 4.6 1.6"/><path d="M14.2 8.6l2.4 7"/><path d="M17.5 11l3.5-4"/>',
+  legcurl:'<path d="M3 15h13M5 15v5M14 15v5"/><circle cx="4" cy="11" r="1.8"/><path d="M6 12.5h8.5l3.5-6"/><path d="M17 5.5l2.5 1.5"/>',
+  legext:'<path d="M5 6v9h8M8 15v5"/><circle cx="8" cy="4.6" r="1.8"/><path d="M8 6.5v7h5.5l5.5-3"/><path d="M18 9l2 3"/>',
   bell:'<path d="M4 9v6M7 7v10M17 7v10M20 9v6M7 12h10"/>'
 };
 const strip=s=>norm(s).normalize('NFD').replace(/[̀-ͯ]/g,'');
 function iconKey(ex){
   const n=strip(ex);
   if(/^run$|course|footing|running|fractionne/.test(n))return 'run';
+  if(/presse|leg press/.test(n))return 'legpress';
+  if(/leg curl|ischio/.test(n))return 'legcurl';
+  if(/leg ext|quadri/.test(n))return 'legext';
   if(/traction|pull.?up|chin/.test(n))return 'pull';
   if(/abdo|crunch|gainage|planche|abs/.test(n))return 'abs';
   if(/dips/.test(n))return 'dips';
@@ -1155,7 +1163,7 @@ async function connect(){
 
 /* ---------- minuteur de repos ---------- */
 const LS_REST='carnet.rest.v1';
-const REST_DEF={'tractions':120,'developpe incline smith':120,'rowing':120,'split squat':120,'dips':120,'elevations laterales':60,'curl biceps':0,'extension triceps':75,'abdos':45};
+const REST_DEF={'tractions':120,'developpe incline smith':120,'rowing':120,'split squat':120,'dips':120,'elevations laterales':60,'curl biceps':60,'extension triceps':60,'presse a cuisses':120,'leg curl':90,'leg extension':90,'abdos':45};
 const REST_CHOICES=[0,60,90,120,180],REST_CHOICES_T=[0,30,45,60,90];
 let rest=lsGet(LS_REST)||{end:0,total:0,label:'',done:false};
 const WORK_CHOICES=[45,60,90,120,180];
