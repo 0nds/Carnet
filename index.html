@@ -159,6 +159,24 @@ button{cursor:pointer;border:0;background:none}
 .bwtoggle[aria-checked="true"] .sw::after{left:19px}
 @media (prefers-reduced-motion: no-preference){.bwtoggle .sw::after{transition:left .15s}}
 .hint{font-size:13px;color:var(--muted);margin:0}
+.card.entry,.card.prof,.card.metab{padding:14px;gap:12px}
+.run-grid.even{grid-template-columns:1fr 1fr}
+.mt-big{font-family:var(--display);font-size:44px;font-weight:700;line-height:1}
+.mt-big small{font-size:18px;color:var(--muted);font-weight:600}
+.mt-bar{display:flex;height:10px;border-radius:5px;overflow:hidden;gap:2px}
+.mt-bar i{display:block;min-width:2px}
+.mt-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;font-size:14px}
+.mt-list li{display:flex;justify-content:space-between;gap:10px}
+.mt-list span{display:flex;align-items:center;gap:8px;color:var(--muted);min-width:0}
+.mt-list span i{width:10px;height:10px;border-radius:3px;flex:none}
+.mt-avg{background:var(--soft);border-radius:10px;padding:10px 12px;font-size:15px;color:var(--muted)}
+.mt-avg b{color:var(--ink)}
+.blist{display:flex;flex-direction:column;gap:2px}
+.blist h2{margin-bottom:6px}
+.brow{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;align-items:center;gap:12px;padding:6px 0;border-bottom:1px solid var(--soft);font-size:15px}
+.brow .bd{text-transform:capitalize;color:var(--muted);min-width:0}
+.brow .bv{text-align:right}
+.brow .btn.small{padding:0 8px;font-size:12px;min-height:32px}
 .backup{display:flex;flex-direction:column;gap:10px;margin-top:18px;padding-top:18px;border-top:1px solid var(--line)}
 .bk-txt{width:100%;min-height:110px;font:13px/1.4 ui-monospace,Menlo,monospace;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px;resize:vertical}
 .imp{display:flex;flex-direction:column;gap:10px}
@@ -210,7 +228,7 @@ svg .endlbl{font-weight:600;font-size:12px}
 
 /* barre d'onglets */
 nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);
-  display:grid;grid-template-columns:repeat(3,1fr);
+  display:grid;grid-template-columns:repeat(4,1fr);
   padding:6px max(8px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px))}
 nav.tabs button{display:flex;flex-direction:column;align-items:center;gap:2px;min-height:52px;justify-content:center;color:var(--muted);font-size:12px;font-weight:600;letter-spacing:.03em}
 nav.tabs button svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
@@ -233,6 +251,7 @@ nav.tabs button[aria-current="page"]{color:var(--ink)}
 <nav class="tabs" aria-label="Navigation">
   <button id="t-log" data-tab="log"><svg viewBox="0 0 24 24"><path d="M3 9v6M6 6v12M18 6v12M21 9v6M6 12h12"/></svg>Séance</button>
   <button id="t-prog" data-tab="prog"><svg viewBox="0 0 24 24"><path d="M3 19h18M5 15l4-4 4 3 6-7"/></svg>Progrès</button>
+  <button id="t-body" data-tab="body"><svg viewBox="0 0 24 24"><rect x="3.5" y="4" width="17" height="16" rx="4"/><path d="M8.5 9.5a5 5 0 0 1 7 0"/><path d="M12 9.5l1.5-1.8"/></svg>Corps</button>
   <button id="t-hist" data-tab="hist"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="17" rx="2"/><path d="M8 2v4M16 2v4M8 11h8M8 15h5"/></svg>Historique</button>
 </nav>
 <div id="toast" class="toast" hidden></div>
@@ -240,7 +259,7 @@ nav.tabs button[aria-current="page"]{color:var(--ink)}
 <script>
 (function(){
 const STANDALONE=!!window.__STANDALONE__;
-const LS_SESS='carnet.sessions.v1', LS_DRAFT='carnet.draft.v1', LS_UI='carnet.ui.v1';
+const LS_SESS='carnet.sessions.v1', LS_DRAFT='carnet.draft.v1', LS_UI='carnet.ui.v1', LS_BODY='carnet.body.v1', LS_PROF='carnet.profile.v1';
 const lsGet=k=>{try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}};
 const lsSet=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -408,10 +427,10 @@ function spark(vals,color){
 /* ---------- vues ---------- */
 const view=document.getElementById('view');
 function render(){
-  document.getElementById('title').textContent={log:draft.id?'Modifier':'Séance',prog:'Progrès',hist:'Historique'}[ui.tab];
+  document.getElementById('title').textContent={log:draft.id?'Modifier':'Séance',prog:'Progrès',hist:'Historique',body:'Corps'}[ui.tab];
   document.querySelectorAll('nav.tabs button').forEach(b=>b.dataset.tab===ui.tab?b.setAttribute('aria-current','page'):b.removeAttribute('aria-current'));
   const sy=document.getElementById('sync');sy.classList.toggle('on',mode==='db');sy.querySelector('span').textContent=mode==='db'?'Synchronisé':STANDALONE?'Sur ce téléphone':'Sur cet appareil';
-  if(ui.tab==='log')renderLog();else if(ui.tab==='prog')renderProg();else renderHist();
+  if(ui.tab==='log')renderLog();else if(ui.tab==='prog')renderProg();else if(ui.tab==='body')renderBody();else renderHist();
 }
 
 function lastInfo(ex){
@@ -661,7 +680,7 @@ let impOpen=false;
 function backupHtml(){
   return `<section class="backup">
     <h2>Sauvegarde</h2>
-    <p class="hint">${STANDALONE?'Tes séances sont gardées sur ce téléphone. Fais une sauvegarde de temps en temps : si tu effaces les données de Safari, elles seraient perdues.':'Copie tes données pour les transférer vers la version autonome du carnet, ou les garder de côté.'}</p>
+    <p class="hint">${STANDALONE?'Tes séances et relevés sont gardés sur ce téléphone. Fais une sauvegarde de temps en temps : si tu effaces les données de Safari, elles seraient perdues.':'Copie tes données pour les transférer vers la version autonome du carnet, ou les garder de côté.'}</p>
     <div class="ex-foot">
       <button class="btn small" data-b="copy">Copier mes données</button>
       ${STANDALONE?'<button class="btn small" data-b="dl">Enregistrer un fichier</button>':''}
@@ -676,14 +695,16 @@ function backupHtml(){
     </div>`:''}
   </section>`;
 }
-function exportText(){return JSON.stringify({app:'carnet-muscu',v:1,exported:new Date().toISOString(),sessions})}
+function exportText(){return JSON.stringify({app:'carnet-muscu',v:2,exported:new Date().toISOString(),sessions,body,profile})}
 function importText(txt){
   let o;try{o=JSON.parse(txt)}catch(e){toast('Ce texte n\'est pas une sauvegarde valide');return}
   const arr=Array.isArray(o)?o:o&&o.sessions;
   if(!Array.isArray(arr)){toast('Aucune séance trouvée dans cette sauvegarde');return}
-  let n=0;
+  let n=0,nb=0;
+  if(o&&Array.isArray(o.body))o.body.forEach(x=>{if(x&&/^\d{4}-\d{2}-\d{2}$/.test(x.date||'')){putBody({id:'b'+x.date,date:x.date,kg:x.kg??'',steps:x.steps??''});nb++}});
+  if(o&&o.profile&&o.profile.sex&&!profOk())saveProfile({sex:o.profile.sex,age:num(o.profile.age),cm:num(o.profile.cm)});
   arr.forEach(x=>{if(x&&typeof x.id==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(x.date||'')&&Array.isArray(x.items)){putSession(x);n++}});
-  impOpen=false;toast(n?`${n} séance${n>1?'s':''} importée${n>1?'s':''}`:'Aucune séance valide à importer');renderHist();
+  impOpen=false;toast(n||nb?`${n} séance${n>1?'s':''}${nb?` et ${nb} relevé${nb>1?'s':''}`:''} importé${n+nb>1?'s':''}`:'Aucune séance valide à importer');renderHist();
 }
 
 function renderHist(){
@@ -699,11 +720,165 @@ function renderHist(){
   </article>`}).join('')+'</div>'+backupHtml();
 }
 
+/* ---------- onglet Corps : poids, pas, dépense estimée ---------- */
+let body=lsGet(LS_BODY)||[];
+let profile=lsGet(LS_PROF)||{};
+let bodyCol=null,profDoc=null,confirmB=null,editProf=false;
+const fmtInt=n=>Math.round(n).toLocaleString('fr-FR');
+function upsertBody(e){const i=body.findIndex(x=>x.id===e.id);if(i>=0)body[i]=e;else body.push(e);lsSet(LS_BODY,body)}
+function putBody(e){upsertBody(e);if(mode==='db'&&bodyCol){const{id,...b}=e;bodyCol.doc(id).set(b).catch(()=>toast('Synchro impossible, gardé sur ce téléphone'))}}
+function delBody(id){body=body.filter(x=>x.id!==id);lsSet(LS_BODY,body);if(mode==='db'&&bodyCol)bodyCol.doc(id).delete().catch(()=>toast('Synchro impossible'))}
+function saveProfile(p){profile=p;lsSet(LS_PROF,p);if(mode==='db'&&profDoc)profDoc.set(p).catch(()=>toast('Synchro impossible'))}
+const profOk=()=>profile&&(profile.sex==='h'||profile.sex==='f')&&num(profile.age)>0&&num(profile.cm)>0;
+const sortedBody=()=>[...body].sort((a,b)=>a.date.localeCompare(b.date));
+function addDays(ds,n){const d=dObj(ds);d.setDate(d.getDate()+n);return ymd(d)}
+
+/* poids de référence : moyenne des pesées des 7 jours jusqu'à la date (sinon dernière pesée connue) */
+function weightAt(ds){
+  const w=sortedBody().filter(e=>num(e.kg)>0&&e.date<=ds);if(!w.length)return 0;
+  const from=addDays(ds,-6),win=w.filter(e=>e.date>=from);
+  const use=win.length?win:[w[w.length-1]];
+  return use.reduce((a,e)=>a+num(e.kg),0)/use.length;
+}
+/* Mifflin-St Jeor + activité quotidienne + pas + séances du jour */
+function metab(ds){
+  const kg=weightAt(ds);if(!profOk()||!kg)return null;
+  const bmr=10*kg+6.25*num(profile.cm)-5*num(profile.age)+(profile.sex==='h'?5:-161);
+  const life=bmr*0.2;
+  const e=body.find(x=>x.date===ds),st=e?num(e.steps):0;
+  const steps=Math.max(0,st-2000)*0.0005*kg;
+  const day=sessions.filter(s=>s.date===ds);
+  const run=day.filter(isRun).reduce((a,s)=>a+num(s.run.km)*kg,0);
+  const gym=day.filter(s=>!isRun(s)).length*3.5*kg;
+  return {kg,bmr,life,steps,stepCount:st,hasSteps:!!e&&String(e.steps??'')!=='',sport:run+gym,total:bmr+life+steps+run+gym};
+}
+function bodySeries(key,period){
+  const rows=sortedBody().filter(e=>num(e[key])>0);
+  if(period==='day')return rows.slice(-45).map(e=>({lbl:dObj(e.date).toLocaleDateString('fr-FR',{day:'numeric',month:'numeric'}),full:dObj(e.date).toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'}),v:num(e[key])}));
+  const g=new Map();
+  rows.forEach(e=>{
+    let k,lbl,full;
+    if(period==='week'){const [y,w]=isoWeek(e.date);k=y*100+w;lbl='S'+w;full='Semaine '+w+' (moyenne)'}
+    else{k=e.date.slice(0,7);const m=dObj(k+'-15');lbl=m.toLocaleDateString('fr-FR',{month:'short'}).replace('.','');full=m.toLocaleDateString('fr-FR',{month:'long',year:'numeric'})+' (moyenne)'}
+    const o=g.get(k)||{lbl,full,sum:0,n:0};o.sum+=num(e[key]);o.n++;g.set(k,o);
+  });
+  return [...g.values()].map(o=>({lbl:o.lbl,full:o.full,v:o.sum/o.n}));
+}
+
+function profileForm(){
+  const p=profile||{};
+  return `<section class="card prof">
+    <div class="card-h"><span class="t">Ton profil</span><span class="u">pour le métabolisme de base</span></div>
+    <div class="seg kind" role="group" aria-label="Sexe"><button data-sex="h" aria-pressed="${p.sex==='h'}">Homme</button><button data-sex="f" aria-pressed="${p.sex==='f'}">Femme</button></div>
+    <div class="run-grid even">
+      <label class="fld"><span class="h">Âge</span><span class="unitwrap"><input class="num" id="p-age" inputmode="numeric" pattern="[0-9]*" placeholder="22" value="${esc(p.age??'')}"><span>ans</span></span></label>
+      <label class="fld"><span class="h">Taille</span><span class="unitwrap"><input class="num" id="p-cm" inputmode="numeric" pattern="[0-9]*" placeholder="178" value="${esc(p.cm??'')}"><span>cm</span></span></label>
+    </div>
+    <button class="btn primary" data-bb="prof">Enregistrer mon profil</button>
+  </section>`;
+}
+
+function renderBody(){
+  if(!ui.bdate||ui.bdate>today())ui.bdate=today();
+  const ds=ui.bdate,e=body.find(x=>x.date===ds)||{};
+  const isToday=ds===today();
+  const m=metab(today());
+  const last7=[];for(let i=0;i<7;i++){const d=addDays(today(),-i);const x=metab(d);if(x&&x.hasSteps)last7.push(x.total)}
+  const avg7=last7.length?last7.reduce((a,b)=>a+b,0)/last7.length:0;
+  const wNow=weightAt(today()),wPrev=weightAt(addDays(today(),-7));
+  const stepsRows=sortedBody().filter(x=>x.date>=addDays(today(),-6)&&String(x.steps??'')!=='');
+  const stepsAvg=stepsRows.length?stepsRows.reduce((a,x)=>a+num(x.steps),0)/stepsRows.length:0;
+  const per={day:'jour',week:'semaine',month:'mois'}[ui.bperiod||'day'];
+  const wPts=bodySeries('kg',ui.bperiod||'day'),sPts=bodySeries('steps',ui.bperiod||'day');
+  const recent=[...body].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,10);
+
+  let h=`<div style="display:flex;flex-direction:column;gap:14px">
+  <section class="card entry">
+    <div class="card-h"><span class="t">${isToday?'Aujourd\'hui':esc(dObj(ds).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'}))}</span><span class="u">${e.date?'déjà noté · modifiable':'pesée et pas du jour'}</span></div>
+    <input type="date" id="b-date" value="${esc(ds)}" max="${today()}" aria-label="Date">
+    <div class="run-grid even">
+      <label class="fld"><span class="h">Poids</span><span class="unitwrap"><input class="kgin num" id="b-kg" inputmode="decimal" placeholder="${wNow?esc(fmt(wNow)):'72,5'}" value="${esc(e.kg!=null&&e.kg!==''?fmt(num(e.kg)):'')}"><span>kg</span></span></label>
+      <label class="fld"><span class="h">Pas</span><span class="unitwrap"><input class="repin num" id="b-steps" inputmode="numeric" pattern="[0-9]*" placeholder="8000" value="${esc(e.steps??'')}"><span>pas</span></span></label>
+    </div>
+    <button class="btn primary" data-bb="save">${e.date?'Mettre à jour':'Enregistrer'}</button>
+  </section>`;
+
+  // métabolisme
+  if(!profOk()||editProf)h+=profileForm();
+  else if(!m)h+=`<div class="demo">Note ta première pesée pour voir ta dépense estimée.</div>`;
+  else{
+    const bar=(v,c)=>`<i style="flex:${Math.max(v,1)};background:${c}"></i>`;
+    h+=`<section class="card metab">
+      <div class="card-h"><span class="t">Dépense estimée aujourd'hui</span><button class="linkbtn" data-bb="editprof">Profil</button></div>
+      <div class="mt-big num">${fmtInt(m.total)}<small> kcal</small></div>
+      <div class="mt-bar" aria-hidden="true">${bar(m.bmr,'var(--muted)')}${bar(m.life,'var(--line)')}${bar(m.steps,'var(--reps)')}${bar(m.sport,'var(--kg)')}</div>
+      <ul class="mt-list num">
+        <li><span><i style="background:var(--muted)"></i>Métabolisme de base</span><b>${fmtInt(m.bmr)}</b></li>
+        <li><span><i style="background:var(--line)"></i>Vie quotidienne et digestion</span><b>${fmtInt(m.life)}</b></li>
+        <li><span><i style="background:var(--reps)"></i>Pas${m.hasSteps?` (${fmtInt(m.stepCount)})`:' (pas encore notés)'}</span><b>${fmtInt(m.steps)}</b></li>
+        <li><span><i style="background:var(--kg)"></i>Séances du jour</span><b>${fmtInt(m.sport)}</b></li>
+      </ul>
+      ${avg7?`<div class="mt-avg">Moyenne sur 7 jours : <b class="num">${fmtInt(avg7)} kcal/jour</b></div>`:''}
+      <p class="hint">Estimation calculée avec la formule de Mifflin-St Jeor et ton poids moyen sur 7 jours (${fmt(m.kg)} kg). Ton vrai maintien se lit sur la balance : si ton poids reste stable sur 2 à 3 semaines en mangeant autour de ce chiffre, c'est le bon.</p>
+    </section>`;
+  }
+
+  // stats + courbes
+  if(body.length){
+    const dW=wNow&&wPrev&&wPrev!==wNow?wNow-wPrev:null;
+    h+=`<div class="stats">
+      <div class="stat"><span class="label">Poids</span><span class="v num">${wNow?fmt(wNow):'—'}<small style="font-size:14px"> kg</small></span><span class="s">moyenne 7 jours</span></div>
+      <div class="stat"><span class="label">Sur 7 jours</span><span class="v num">${dW===null?'—':(dW>0?'+':'')+fmt(dW)}</span><span class="s">kg vs semaine préc.</span></div>
+      <div class="stat"><span class="label">Pas</span><span class="v num">${stepsAvg?fmtInt(stepsAvg):'—'}</span><span class="s">par jour, sur 7 jours</span></div>
+    </div>
+    <div class="seg" role="group" aria-label="Période">${[['day','Par jour'],['week','Hebdo'],['month','Mensuel']].map(([k,l])=>`<button data-bp="${k}" aria-pressed="${(ui.bperiod||'day')===k}">${l}</button>`).join('')}</div>
+    <div class="card"><div class="card-h"><span class="t"><i style="background:var(--kg)"></i>Poids</span><span class="u">kg · ${ui.bperiod==='day'||!ui.bperiod?'par jour':'moyenne par '+per}</span></div>${chart(wPts,'v','var(--kg)','kg')}</div>
+    <div class="card"><div class="card-h"><span class="t"><i style="background:var(--reps)"></i>Pas</span><span class="u">${ui.bperiod==='day'||!ui.bperiod?'par jour':'moyenne par jour, par '+per}</span></div>${chart(sPts,'v','var(--reps)','pas',v=>v>=1000?fmt(v/1000)+'k':fmtInt(v))}</div>
+    <section class="blist"><h2>Derniers relevés</h2>${recent.map(x=>`<div class="brow">
+      <span class="bd">${esc(dObj(x.date).toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'}))}</span>
+      <span class="bv num">${num(x.kg)?fmt(num(x.kg))+' kg':'—'}</span><span class="bv num">${String(x.steps??'')!==''?fmtInt(num(x.steps))+' pas':'—'}</span>
+      ${confirmB===x.id?`<button class="btn small danger" data-bdel="${esc(x.id)}">Supprimer</button>`:`<button class="x" data-bask="${esc(x.id)}" aria-label="Supprimer le relevé">×</button>`}
+    </div>`).join('')}</section>`;
+  }else h+=`<div class="empty">Tes courbes de poids et de pas apparaîtront ici dès ton premier relevé.</div>`;
+  view.innerHTML=h+'</div>';
+}
+
+function bodyClick(b){
+  if(b.dataset.sex){profile=Object.assign({},profile,{sex:b.dataset.sex});view.querySelectorAll('[data-sex]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.sex===b.dataset.sex));return true}
+  if(b.dataset.bp){ui.bperiod=b.dataset.bp;saveUi();renderBody();return true}
+  if(b.dataset.bask){confirmB=b.dataset.bask;renderBody();return true}
+  if(b.dataset.bdel){delBody(b.dataset.bdel);confirmB=null;toast('Relevé supprimé');renderBody();return true}
+  const a=b.dataset.bb;if(!a)return false;
+  if(a==='editprof'){editProf=true;renderBody();return true}
+  if(a==='prof'){
+    const age=num(document.getElementById('p-age').value),cm=num(document.getElementById('p-cm').value);
+    if(profile.sex!=='h'&&profile.sex!=='f'){toast('Choisis Homme ou Femme');return true}
+    if(!(age>=12&&age<=99)){toast('Âge entre 12 et 99 ans');return true}
+    if(!(cm>=120&&cm<=230)){toast('Taille en cm, entre 120 et 230');return true}
+    saveProfile({sex:profile.sex,age,cm});editProf=false;toast('Profil enregistré');renderBody();return true;
+  }
+  if(a==='save'){
+    const ds=document.getElementById('b-date').value||today();
+    const kgS=document.getElementById('b-kg').value.trim(),stS=document.getElementById('b-steps').value.trim();
+    if(!kgS&&!stS){toast('Entre ton poids ou ton nombre de pas');return true}
+    const kg=num(kgS),st=Math.round(num(stS));
+    if(kgS&&!(kg>=30&&kg<=250)){toast('Poids en kg, entre 30 et 250');return true}
+    if(stS&&!(st>=0&&st<=100000)){toast('Nombre de pas entre 0 et 100 000');return true}
+    const old=body.find(x=>x.date===ds)||{};
+    const ent={id:'b'+ds,date:ds,kg:kgS?kg:(old.kg??''),steps:stS?st:(old.steps??'')};
+    putBody(ent);ui.bdate=today();
+    toast(ds===today()?'Relevé du jour enregistré':`Relevé du ${dObj(ds).toLocaleDateString('fr-FR',{day:'numeric',month:'short'})} enregistré`);
+    renderBody();return true;
+  }
+  return false;
+}
+
 /* ---------- interactions ---------- */
 let saveT;
 view.addEventListener('change',e=>{
   const el=e.target;
   if(el.id==='imp-file'&&el.files&&el.files[0]){const r=new FileReader();r.onload=()=>{const t=document.getElementById('imp-txt');if(t)t.value=String(r.result||'')};r.readAsText(el.files[0]);return}
+  if(el.id==='b-date'){ui.bdate=el.value||today();renderBody();return}
   if(el.id!=='d-date')return;
   draft.date=el.value||today();saveDraft();renderLog();
 });
@@ -719,6 +894,7 @@ view.addEventListener('input',e=>{
 });
 view.addEventListener('click',async e=>{
   const b=e.target.closest('button');if(!b)return;
+  if(ui.tab==='body'&&bodyClick(b))return;
   if(b.dataset.ex){ui.ex=b.dataset.ex;saveUi();renderProg();return}
   if(b.dataset.b){
     const a=b.dataset.b;
@@ -755,7 +931,7 @@ view.addEventListener('click',async e=>{
   if(b.dataset.a==='see-prog'){if(it.ex.trim())ui.ex=it.ex.trim();go('prog');return}
 });
 document.querySelectorAll('nav.tabs button').forEach(b=>b.addEventListener('click',()=>go(b.dataset.tab)));
-function go(t){ui.tab=t;ui.open=null;saveUi();confirmDel=null;render();window.scrollTo(0,0)}
+function go(t){ui.tab=t;ui.open=null;confirmB=null;editProf=false;if(t==='body')ui.bdate=today();saveUi();confirmDel=null;render();window.scrollTo(0,0)}
 
 let toastT;function toast(m){const t=document.getElementById('toast');t.textContent=m;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,2200)}
 
@@ -811,6 +987,24 @@ async function connect(){
     const [db,user]=await Promise.all([window.claude.use('db'),window.claude.use('user')]);
     const id=user?await user.id():null;if(!db||!id)return;
     col=db.collection('data/users/'+id);
+    bodyCol=db.collection('data/users/'+id+'/meta/body');profDoc=db.doc('data/users/'+id+'/meta/settings/profile');
+    let bfirst=true;
+    bodyCol.onSnapshot(async snap=>{
+      let remote=snap.docs.map(d=>Object.assign({id:d.id},d.data()));
+      if(bfirst){if(snap.metadata.fromCache)return;bfirst=false;
+        const ids=new Set(remote.map(r=>r.id)),missing=body.filter(x=>!ids.has(x.id));remote=remote.concat(missing);
+        for(const x of missing){try{const{id:k,...b}=x;await bodyCol.doc(k).set(b)}catch(e){}}}
+      body=remote;lsSet(LS_BODY,body);
+      const typing=view.contains(document.activeElement)&&document.activeElement.tagName==='INPUT';
+      if(ui.tab==='body'&&!typing)renderBody();
+    },()=>{});
+    profDoc.onSnapshot(snap=>{
+      if(snap.metadata.fromCache)return;
+      if(snap.exists){profile=Object.assign({},snap.data());lsSet(LS_PROF,profile)}
+      else if(profOk())profDoc.set(profile).catch(()=>{});
+      const typing=view.contains(document.activeElement)&&document.activeElement.tagName==='INPUT';
+      if(ui.tab==='body'&&!typing&&!editProf)renderBody();
+    },()=>{});
     let first=true;
     col.onSnapshot(async snap=>{
       let remote=snap.docs.map(d=>Object.assign({id:d.id},d.data()));
